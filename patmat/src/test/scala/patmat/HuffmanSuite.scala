@@ -57,4 +57,45 @@ class HuffmanSuite extends FunSuite {
     }
   }
 
+  test("decode and quick encode a large text should be identity") {
+    new TestTrees {
+      assert(decode(t2, quickEncode(t2)("abd".toList)) === "abd".toList)
+    }
+  }
+
+  test("decode and encode with quickEncode a very short text should be identity") {
+    new TestTrees {
+      assert(decode(t2, quickEncode(t2)("ab".toList)) === "ab".toList)
+    }
+  }
+
+  test ("decode and encode with quickEncode a text should be identity") {
+    new TestTrees {
+      assert(decode(t2, quickEncode(t2)("abbbb".toList)) === "abbbb".toList)
+    }
+  }
+
+  test ("decode and encode with quickEncode a text abbaa should be identity") {
+    new TestTrees {
+      assert(decode(t2, quickEncode(t2)("abbaa".toList)) === "abbaa".toList)
+    }
+  }
+
+  test("decode and encode longer strings using frenchcode and quickEncode") {
+    assert(decode(frenchCode, quickEncode(frenchCode)("thisisatest".toList)) === "thisisatest".toList)
+  }
+
+  test("encode and decode a sample string using new custom tree") {
+    val myText = "thisisatestofyourcreatecodetreemethod".toList
+    val myTree = createCodeTree(myText)
+    assert(decode(myTree, encode(myTree)(myText)) === myText)
+  }
+
+  test("encode some text with frenchCode") {
+    println(decodedSecret.mkString(","))
+    new TestTrees {
+      assert(encode(frenchCode)("huffmanestcool".toList) === List(0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1))
+    }
+  }
+
 }

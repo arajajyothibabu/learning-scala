@@ -105,7 +105,7 @@ object Huffman {
     * unchanged.
     */
   def combine(trees: List[CodeTree]): List[CodeTree] = trees match {
-    case first :: second :: tail => makeCodeTree(first, second) :: combine(tail)
+    case first :: second :: tail => (makeCodeTree(first, second) :: tail).sortBy(weight)
     case _ => trees
   }
 
@@ -126,7 +126,7 @@ object Huffman {
     * the example invocation. Also define the return type of the `until` function.
     *  - try to find sensible parameter names for `xxx`, `yyy` and `zzz`.
     */
-  def until(isSingleton: List[CodeTree] => Boolean, keepCombining: List[CodeTree] => List[CodeTree])(codeTrees: List[CodeTree]): List[CodeTree] = {
+  def until[T](isSingleton: List[T] => Boolean, keepCombining: List[T] => List[T])(codeTrees: List[T]): List[T] = {
     if(isSingleton(codeTrees)) codeTrees else until(isSingleton, keepCombining)(keepCombining(codeTrees))
   }
 
@@ -148,16 +148,16 @@ object Huffman {
     * the resulting list of characters.
     */
   def decode(tree: CodeTree, bits: List[Bit]): List[Char] = {
-    def decodeAcc(tree: CodeTree, bits: List[Bit], root: CodeTree): List[Char] = {
-      tree match {
-        case Fork(left, right, _, _) => bits match {
-          case 0 :: tail => decodeAcc(left, tail, root)
-          case 1 :: tail => decodeAcc(right, tail, root)
+    def traverse(node: CodeTree, bits: List[Bit]): List[Char] = {
+      bits match {
+        case Nil => chars(node)
+        case bit :: tail => node match {
+          case Leaf(char, _) => char :: traverse(tree, bits)
+          case Fork(left, right, _, _) => if(bit.equals(0)) traverse(left, tail) else traverse(right, tail)
         }
-        case Leaf(char, _) => char :: (if(bits.nonEmpty) decodeAcc(root, bits, root) else List.empty)
       }
     }
-    decodeAcc(tree, bits, tree)
+    traverse(tree, bits)
   }
 
   /**
@@ -187,21 +187,14 @@ object Huffman {
     */
   def encode(tree: CodeTree)(text: List[Char]): List[Bit] = {
 
-    def encodeAcc(tree: CodeTree, char: Char, bits: List[Bit]): List[Bit] = {
-      tree match {
-        case Leaf(leafChar, _) => if(leafChar.equals(char)) bits else List.empty
-        case Fork(left, right, _, _) => left match {
-          case Leaf(leafChar, _) => if(leafChar.equals(char)) 0 :: bits else encodeAcc(right, char, 1 :: bits)
-          case Fork(_, _, chars, _) => if(chars.contains(char)) encodeAcc(left, char, 0 :: bits) else encodeAcc(right, char, 1 :: bits)
-        }
+    def encodeChar(node: CodeTree)(implicit char: Char): List[Bit] = {
+      node match {
+        case Leaf(_, _) => Nil
+        case Fork(left, right, _, _) => if(chars(left).contains(char)) 0 :: encodeChar(left) else 1 :: encodeChar(right)
       }
     }
 
-    if(text.nonEmpty) {
-      encodeAcc(tree, text.head, List.empty) ::: encode(tree)(text.tail)
-    }else{
-      List.empty
-    }
+    text.flatMap(t => encodeChar(tree)(t))
 
   }
 
@@ -213,7 +206,7 @@ object Huffman {
     * This function returns the bit sequence that represents the character `char` in
     * the code table `table`.
     */
-  def codeBits(table: CodeTable)(char: Char): List[Bit] = table.find(_._1.equals(char)).map(_._2).getOrElse(List.empty)
+  def codeBits(table: CodeTable)(char: Char): List[Bit] = table.find(_._1.equals(char)).map(_._2).getOrElse(Nil)
 
 
   /**
